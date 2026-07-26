@@ -27,7 +27,7 @@ function createWindow(): BrowserWindow {
       preload: join(__dirname, '../preload/index.mjs'),
       contextIsolation: true,
       nodeIntegration: false,
-      sandbox: true
+      sandbox: false
     }
   })
   window.once('ready-to-show', () => window.show())

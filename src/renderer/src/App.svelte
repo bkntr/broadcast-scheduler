@@ -302,7 +302,7 @@
     busy = true
     globalError = undefined
     try {
-      activeBatch = await window.desktop.batches.start(form, [...excluded])
+      activeBatch = await window.desktop.batches.start($state.snapshot(form), [...excluded])
       batches = [activeBatch, ...batches.filter((batch) => batch.id !== activeBatch?.id)].slice(0, 30)
       view = 'batch'
       streamKeys = {}
@@ -347,7 +347,7 @@
   async function saveSettings(): Promise<void> {
     try {
       settings.locale = locale
-      settings = await window.desktop.settings.save(settings)
+      settings = await window.desktop.settings.save($state.snapshot(settings))
       applyTheme(settings.theme)
       applyLocale(locale)
       form.locale = locale

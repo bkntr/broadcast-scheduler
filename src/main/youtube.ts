@@ -76,11 +76,6 @@ export class YouTubeService {
     const title = rotate
       ? `YouTube Scheduler — ${channel.title} — ${batchId.slice(0, 8)}`
       : `YouTube Scheduler — ${channel.title}`
-    const recovered = await this.findStream(youtube, title)
-    if (recovered) {
-      await this.store.setChannelStream(channel.id, recovered.streamId)
-      return recovered
-    }
     const created = await this.createStream(
       youtube,
       title,
@@ -94,7 +89,7 @@ export class YouTubeService {
   async createItemStream(identifier: string): Promise<{ streamId: string; streamKey: string }> {
     const youtube = await this.client()
     const title = `YouTube Scheduler — ${identifier}`
-    return await this.findStream(youtube, title)
+    return await this.findRecentStream(youtube, title)
       ?? this.createStream(youtube, title, 'Stream managed by YouTube Scheduler.', true)
   }
 
@@ -197,7 +192,7 @@ export class YouTubeService {
       part: ['snippet', 'cdn', 'contentDetails', 'status'],
       requestBody: {
         snippet: { title, description },
-        cdn: { frameRate: '60fps', ingestionType: 'rtmp', resolution: '1080p' },
+        cdn: { frameRate: 'variable', ingestionType: 'rtmp', resolution: 'variable' },
         contentDetails: { isReusable: reusable }
       }
     })
@@ -216,7 +211,6 @@ export class YouTubeService {
     do {
       const response = await youtube.liveBroadcasts.list({
         part: ['id', 'snippet'],
-        mine: true,
         broadcastStatus: 'upcoming',
         maxResults: 50,
         pageToken
@@ -230,23 +224,21 @@ export class YouTubeService {
     return undefined
   }
 
-  private async findStream(
+  private async findRecentStream(
     youtube: youtube_v3.Youtube,
     title: string
   ): Promise<{ streamId: string; streamKey: string } | undefined> {
-    let pageToken: string | undefined
-    do {
-      const response = await youtube.liveStreams.list({
-        part: ['id', 'snippet', 'cdn'],
-        mine: true,
-        maxResults: 50,
-        pageToken
-      })
-      const match = response.data.items?.find((item) => item.snippet?.title === title)
-      const streamKey = match?.cdn?.ingestionInfo?.streamName
-      if (match?.id && streamKey) return { streamId: match.id, streamKey }
-      pageToken = response.data.nextPageToken ?? undefined
-    } while (pageToken)
+    // Retry recovery only needs the newest page: a stream created by an earlier
+    // attempt will be recent. Scanning a channel's full stream history can fail
+    // on old YouTube pagination pages and prevent otherwise valid insertions.
+    const response = await youtube.liveStreams.list({
+      part: ['id', 'snippet', 'cdn'],
+      mine: true,
+      maxResults: 50
+    })
+    const match = response.data.items?.find((item) => item.snippet?.title === title)
+    const streamKey = match?.cdn?.ingestionInfo?.streamName
+    if (match?.id && streamKey) return { streamId: match.id, streamKey }
     return undefined
   }
 }
