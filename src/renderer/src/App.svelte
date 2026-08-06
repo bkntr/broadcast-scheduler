@@ -1,7 +1,7 @@
 <script lang="ts">
   import { onMount } from 'svelte'
   import { Temporal } from '@js-temporal/polyfill'
-  import { AlertDialog, Dialog } from 'bits-ui'
+  import { Dialog } from 'bits-ui'
   import {
     CalendarDays,
     Check,
@@ -12,7 +12,6 @@
     ExternalLink,
     Eye,
     EyeOff,
-    FileKey2,
     History,
     Image,
     LoaderCircle,
@@ -33,8 +32,7 @@
     PlaylistSummary,
     ScheduleInput,
     SchedulePreview,
-    ThumbnailInfo,
-    UpdateInfo
+    ThumbnailInfo
   } from '../../shared/types'
   import { translate } from './i18n'
 
@@ -52,7 +50,7 @@
   let view = $state<View>('schedule')
   let locale = $state<Locale>('en')
   let auth = $state<AuthState>({ status: 'disconnected', channels: [] })
-  let settings = $state<AppSettings>({ locale: 'en', theme: 'system', updateChecks: true })
+  let settings = $state<AppSettings>({ locale: 'en', theme: 'system' })
   let batches = $state<BatchRecord[]>([])
   let playlists = $state<PlaylistSummary[]>([])
   let thumbnail = $state<ThumbnailInfo>()
@@ -64,15 +62,11 @@
   let globalError = $state<string>()
   let descriptionModal = $state<string>()
   let descriptionDialogOpen = $state(false)
-  let closeDialog = $state(false)
-  let closeAfterStop = $state(false)
   let largeBatchConfirmed = $state(false)
   let streamKeys = $state<Record<string, string>>({})
   let visibleStreamIds = $state(new Set<string>())
   let copied = $state(false)
-  let update = $state<UpdateInfo>()
-  let updateMessage = $state<string>()
-  let configurationMessage = $state<string>()
+  let diagnosticsMessage = $state<string>()
   let oauthHelpOpen = $state(false)
 
   const selectedChannel = $derived(auth.channels.find((channel) => channel.id === auth.selectedChannelId))
@@ -173,25 +167,6 @@
     }
   }
 
-  async function chooseOAuthConfiguration(): Promise<void> {
-    busy = true
-    globalError = undefined
-    configurationMessage = undefined
-    try {
-      const next = await window.desktop.auth.chooseConfiguration()
-      if (!next) return
-      auth = next
-      playlists = []
-      settings.selectedChannelId = undefined
-      view = 'schedule'
-      configurationMessage = t('oauthConfigSaved')
-    } catch (error) {
-      globalError = errorMessage(error)
-    } finally {
-      busy = false
-    }
-  }
-
   async function selectChannel(channelId: string): Promise<void> {
     try {
       auth = await window.desktop.auth.selectChannel(channelId)
@@ -271,7 +246,8 @@
     }
   }
 
-  function removeThumbnail(): void {
+  async function removeThumbnail(): Promise<void> {
+    if (thumbnail) await window.desktop.thumbnail.remove(thumbnail.path)
     thumbnail = undefined
     form.thumbnailPath = ''
   }
@@ -356,16 +332,6 @@
     }
   }
 
-  async function checkUpdates(): Promise<void> {
-    updateMessage = undefined
-    try {
-      update = await window.desktop.updates.check()
-      updateMessage = update.available ? t('updateAvailable') : t('upToDate')
-    } catch (error) {
-      globalError = errorMessage(error)
-    }
-  }
-
   async function clearHistory(): Promise<void> {
     await window.desktop.batches.clearHistory()
     batches = []
@@ -400,7 +366,6 @@
 
   onMount(() => {
     let removeProgress = () => {}
-    let removeClose = () => {}
     let removeThumbnailDrop = () => {}
     const themeMedia = matchMedia('(prefers-color-scheme: dark)')
     const followSystemTheme = (): void => {
@@ -425,9 +390,7 @@
         preview = fixture.preview
         activeBatch = fixture.activeBatch
         globalError = fixture.globalError
-        update = fixture.update
         if (fixture.description !== undefined) showDescription(fixture.description)
-        closeDialog = fixture.closeDialog ?? false
         applyLocale(locale)
         applyTheme(settings.theme)
         requestAnimationFrame(() => {
@@ -449,7 +412,6 @@
         applyTheme(settings.theme)
         form = mergeRemembered(defaultForm(locale), settings.lastSchedule)
         if (auth.status === 'connected' && auth.selectedChannelId) await loadPlaylists()
-        if (settings.updateChecks) void checkUpdates()
       } catch (error) {
         globalError = errorMessage(error)
       }
@@ -459,11 +421,7 @@
       const batch = event.batch
       batches = [batch, ...batches.filter((candidate) => candidate.id !== batch.id)].slice(0, 30)
       if (activeBatch?.id === batch.id) activeBatch = batch
-      if (closeAfterStop && ['paused', 'failed', 'completed'].includes(batch.status)) {
-        void window.desktop.app.closeDecision('now')
-      }
     })
-    removeClose = window.desktop.onCloseRequested(() => { closeDialog = true })
     removeThumbnailDrop = window.desktop.thumbnail.onDrop((result) => {
       if (result.error) {
         globalError = result.error
@@ -476,7 +434,6 @@
     })
     return () => {
       removeProgress()
-      removeClose()
       removeThumbnailDrop()
       themeMedia.removeEventListener('change', followSystemTheme)
     }
@@ -512,13 +469,6 @@
   </header>
 
   <main class="main">
-    {#if update?.available && update.url}
-      <div class="banner">
-        <span>{t('updateAvailable')} {update.latestVersion}</span>
-        <button class="button secondary" onclick={() => window.desktop.external.open(update!.url!)}>{t('viewRelease')} <ExternalLink size={15} /></button>
-      </div>
-    {/if}
-
     {#if globalError}
       <div class="banner error-banner" role="alert">
         <span><strong>{t('error')}:</strong> {globalError}</span>
@@ -533,20 +483,14 @@
         <div class="auth-icon"><UserRoundCheck size={32} /></div>
         <h1 class="page-heading">{t('connectTitle')}</h1>
         <p class="page-intro">{auth.status === 'unconfigured' ? t('authUnconfigured') : auth.message ?? t('connectBody')}</p>
-        {#if configurationMessage}<p class="configuration-message"><Check size={17} /> {configurationMessage}</p>{/if}
         <div class="auth-actions">
           {#if auth.status === 'unconfigured'}
-            <button class="button primary" disabled={busy} onclick={chooseOAuthConfiguration}>
-              {#if busy}<LoaderCircle class="animate-spin" size={17} />{:else}<FileKey2 size={17} />{/if}
-              {t('chooseOAuthJson')}
-            </button>
-            <button class="button secondary" disabled={busy} onclick={() => oauthHelpOpen = true}><CircleHelp size={17} /> {t('oauthHelp')}</button>
+            <button class="button primary" onclick={() => oauthHelpOpen = true}><CircleHelp size={17} /> {t('oauthHelp')}</button>
           {:else}
             <button class="button primary" disabled={busy} onclick={connect}>
               {#if busy}<LoaderCircle class="animate-spin" size={17} />{/if}
               {auth.status === 'reauth-required' ? t('reconnect') : t('connect')}
             </button>
-            <button class="button secondary" disabled={busy} onclick={chooseOAuthConfiguration}><FileKey2 size={17} /> {t('changeOAuthJson')}</button>
           {/if}
         </div>
         {#if auth.status === 'connected' && auth.channels.length > 1}
@@ -760,12 +704,10 @@
         <h2 class="section-title">{t('appearance')}</h2>
         <div class="setting-row"><div><strong>{t('language')}</strong></div><select class="select" bind:value={locale} onchange={saveSettings}><option value="en">English</option><option value="fr">Français</option></select></div>
         <div class="setting-row"><div><strong>{t('theme')}</strong></div><select class="select" bind:value={settings.theme} onchange={saveSettings}><option value="system">{t('system')}</option><option value="light">{t('light')}</option><option value="dark">{t('dark')}</option></select></div>
-        <div class="setting-row"><label class="checkbox-row"><input type="checkbox" bind:checked={settings.updateChecks} onchange={saveSettings} /> <span>{t('updateChecks')}</span></label><button class="button secondary" onclick={checkUpdates}>{t('checkUpdates')}</button></div>
-        {#if updateMessage}<p class="muted">{updateMessage}</p>{/if}
-        <div class="setting-row"><div><strong>{t('copyDiagnostics')}</strong><p class="muted">{t('diagnosticsPrivacy')}</p></div><button class="button secondary" onclick={async () => { await window.desktop.diagnostics.copy(); updateMessage = t('diagnosticsCopied') }}>{t('copyDiagnostics')}</button></div>
-        <div class="setting-row"><div><strong>{t('oauthConfiguration')}</strong><p class="muted">{t('oauthConfigurationStored')}</p></div><button class="button secondary" disabled={busy} onclick={chooseOAuthConfiguration}><FileKey2 size={17} /> {t('changeOAuthJson')}</button></div>
+        <div class="setting-row"><div><strong>{t('copyDiagnostics')}</strong><p class="muted">{t('diagnosticsPrivacy')}</p></div><button class="button secondary" onclick={async () => { await window.desktop.diagnostics.copy(); diagnosticsMessage = t('diagnosticsCopied') }}>{t('copyDiagnostics')}</button></div>
+        {#if diagnosticsMessage}<p class="muted">{diagnosticsMessage}</p>{/if}
         <div class="setting-row"><div><strong>{selectedChannel?.title}</strong><p class="muted">{auth.selectedChannelId}</p></div><button class="button danger" onclick={disconnect}>{t('disconnect')}</button></div>
-        <p class="muted" style="margin-top:18px">{t('version')} {boot.version} · {boot.arch}</p>
+        <p class="muted" style="margin-top:18px">{t('version')} {boot.version} · Web</p>
       </div>
     {/if}
   </main>
@@ -786,7 +728,7 @@
         <li>{t('oauthHelpProject')}</li>
         <li>{t('oauthHelpApi')}</li>
         <li>{t('oauthHelpConsent')}</li>
-        <li>{t('oauthHelpClient')}</li>
+        <li>{t('oauthHelpClient', { origin: window.location.origin })}</li>
         <li>{t('oauthHelpDownload')}</li>
         <li>{t('oauthHelpReturn')}</li>
       </ol>
@@ -811,17 +753,3 @@
     </Dialog.Content>
   </Dialog.Portal>
 </Dialog.Root>
-
-<AlertDialog.Root bind:open={closeDialog} onOpenChange={(open) => { if (!open) void window.desktop.app.closeDecision('keep') }}>
-  <AlertDialog.Portal>
-    <AlertDialog.Overlay class="modal-backdrop" />
-    <AlertDialog.Content class="modal">
-      <AlertDialog.Title class="modal-title">{t('closeTitle')}</AlertDialog.Title>
-      <AlertDialog.Description>{t('closeBody')}</AlertDialog.Description>
-      <div class="actions">
-        <AlertDialog.Cancel class="button secondary">{t('keepScheduling')}</AlertDialog.Cancel>
-        <AlertDialog.Action class="button primary" onclick={() => { closeAfterStop = true; void window.desktop.app.closeDecision('stop') }}>{t('exitAfterCurrent')}</AlertDialog.Action>
-      </div>
-    </AlertDialog.Content>
-  </AlertDialog.Portal>
-</AlertDialog.Root>

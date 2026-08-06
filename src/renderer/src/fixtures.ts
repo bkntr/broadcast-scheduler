@@ -6,8 +6,7 @@ import type {
   BatchRecord,
   Locale,
   ScheduleInput,
-  SchedulePreview,
-  UpdateInfo
+  SchedulePreview
 } from '../../shared/types'
 
 export type FixtureView = 'schedule' | 'review' | 'batch' | 'history' | 'settings'
@@ -31,8 +30,6 @@ export interface UiFixture {
   activeBatch?: BatchRecord
   globalError?: string
   description?: string
-  closeDialog?: boolean
-  update?: UpdateInfo
 }
 
 const channel = {
@@ -91,7 +88,7 @@ export function createUiFixture(
   requestedTheme: AppSettings['theme']
 ): UiFixture {
   const locale = requestedLocale
-  const settings: AppSettings = { locale, theme: requestedTheme, updateChecks: true, selectedChannelId: channel.id }
+  const settings: AppSettings = { locale, theme: requestedTheme, selectedChannelId: channel.id }
   const connected: AuthState = { status: 'connected', channels: [channel], selectedChannelId: channel.id }
   const form: ScheduleInput = {
     ...structuredClone(baseForm),
@@ -135,10 +132,9 @@ export function createUiFixture(
     fixture.view = 'review'
     fixture.preview = preview
     if (name === 'description') fixture.description = preview.items[0]?.description
-  } else if (name === 'progress' || name === 'close') {
+  } else if (name === 'progress') {
     fixture.view = 'batch'
     fixture.activeBatch = batchFromPreview(preview, form, 'running', 'fixture-running')
-    if (name === 'close') fixture.closeDialog = true
   } else if (name === 'success') {
     fixture.view = 'batch'
     fixture.activeBatch = completed
@@ -150,14 +146,6 @@ export function createUiFixture(
     fixture.globalError = locale === 'fr'
       ? 'La connexion à YouTube a expiré. Reconnectez votre compte pour continuer.'
       : 'Your YouTube authorization expired. Reconnect your account to continue.'
-  } else if (name === 'update') {
-    fixture.update = {
-      available: true,
-      currentVersion: '0.1.0',
-      latestVersion: '0.2.0',
-      releaseName: 'YouTube Scheduler 0.2.0',
-      url: 'https://github.com/bkntr/youtube-scheduler/releases/latest'
-    }
   }
   return fixture
 }

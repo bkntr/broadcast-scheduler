@@ -113,18 +113,8 @@ export interface BatchRecord {
 export interface AppSettings {
   locale: Locale
   theme: 'system' | 'light' | 'dark'
-  updateChecks: boolean
   selectedChannelId?: string
   lastSchedule?: Partial<ScheduleInput>
-}
-
-export interface UpdateInfo {
-  available: boolean
-  currentVersion: string
-  latestVersion?: string
-  releaseName?: string
-  releaseNotes?: string
-  url?: string
 }
 
 export interface ThumbnailInfo {
@@ -142,6 +132,5 @@ export interface ProgressEvent {
 
 export const DEFAULT_SETTINGS: AppSettings = {
   locale: 'en',
-  theme: 'system',
-  updateChecks: true
+  theme: 'system'
 }

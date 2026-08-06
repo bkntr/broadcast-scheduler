@@ -1,6 +1,3 @@
-import { randomUUID } from 'node:crypto'
-import type { BrowserWindow } from 'electron'
-import log from 'electron-log/main'
 import { generateSchedulePreview } from '../shared/schedule'
 import type {
   BatchItemRecord,
@@ -10,25 +7,30 @@ import type {
   ScheduleInput
 } from '../shared/types'
 import { AppError, toAppError } from './errors'
-import type { AppStore } from './storage'
+import type { BrowserStore } from './storage'
 import type { YouTubeService } from './youtube'
 
 const RETRY_DELAYS_MS = [1_000, 3_000, 8_000]
 
 function delay(milliseconds: number): Promise<void> {
-  return new Promise((resolve) => setTimeout(resolve, milliseconds))
+  return new Promise((resolve) => window.setTimeout(resolve, milliseconds))
 }
 
 export class SchedulerService {
   private activeBatchId?: string
   private stopRequested = false
-  private sessionStreamKeys = new Map<string, Map<string, string>>()
+  private readonly listeners = new Set<(event: ProgressEvent) => void>()
+  private readonly sessionStreamKeys = new Map<string, Map<string, string>>()
 
   constructor(
-    private readonly store: AppStore,
-    private readonly youtube: YouTubeService,
-    private readonly window: () => BrowserWindow | undefined
+    private readonly store: BrowserStore,
+    private readonly youtube: YouTubeService
   ) {}
+
+  onProgress(callback: (event: ProgressEvent) => void): () => void {
+    this.listeners.add(callback)
+    return () => this.listeners.delete(callback)
+  }
 
   isRunning(): boolean {
     return Boolean(this.activeBatchId)
@@ -46,7 +48,7 @@ export class SchedulerService {
 
     const now = new Date().toISOString()
     const batch: BatchRecord = {
-      id: randomUUID(),
+      id: crypto.randomUUID(),
       createdAt: now,
       updatedAt: now,
       channel,
@@ -104,7 +106,7 @@ export class SchedulerService {
   private async run(batchId: string): Promise<void> {
     this.activeBatchId = batchId
     this.stopRequested = false
-    let batch = this.store.getBatch(batchId)
+    const batch = this.store.getBatch(batchId)
     if (!batch) {
       this.activeBatchId = undefined
       return
@@ -119,8 +121,7 @@ export class SchedulerService {
         shared = existingStreamId
           ? { streamId: existingStreamId, streamKey: await this.retry('shared-stream', () => this.youtube.retrieveStreamKey(existingStreamId)) }
           : await this.retry('shared-stream', () =>
-              this.youtube.getOrCreateSharedStream(batch!.channel, batch!.input.rotateStreamKey, batch!.id)
-            )
+              this.youtube.getOrCreateSharedStream(batch.channel, batch.input.rotateStreamKey, batch.id))
         this.rememberStreamKey(batch.id, shared.streamId, shared.streamKey)
       }
 
@@ -142,7 +143,6 @@ export class SchedulerService {
       const appError = toAppError(error)
       batch.status = 'failed'
       batch.lastError = appError.message
-      log.error('Scheduling operation failed', { code: appError.code, batchId: batch.id })
     } finally {
       batch.completedCount = batch.items.filter((item) => item.status === 'completed').length
       batch.failedCount = batch.items.filter((item) => item.status === 'failed').length
@@ -171,8 +171,7 @@ export class SchedulerService {
           item.streamId = shared.streamId
         } else {
           const stream = await this.retry('item-stream', () =>
-            this.youtube.createItemStream(`${batch.id.slice(0, 8)} — ${item.session}`)
-          )
+            this.youtube.createItemStream(`${batch.id.slice(0, 8)} — ${item.session}`))
           item.streamId = stream.streamId
           this.rememberStreamKey(batch.id, stream.streamId, stream.streamKey)
         }
@@ -217,14 +216,12 @@ export class SchedulerService {
 
       item.status = 'completed'
       item.step = undefined
-      batch.completedCount = batch.items.filter((candidate) => candidate.status === 'completed').length
       await this.saveAndEmit(batch)
     } catch (error) {
       const appError = toAppError(error)
       item.status = 'failed'
       item.errorCode = appError.code
       item.errorMessage = appError.message
-      batch.failedCount = batch.items.filter((candidate) => candidate.status === 'failed').length
       await this.saveAndEmit(batch)
       throw appError
     }
@@ -239,12 +236,8 @@ export class SchedulerService {
         failure = toAppError(error)
         if (!failure.retryable || attempt === RETRY_DELAYS_MS.length) throw failure
         const milliseconds = RETRY_DELAYS_MS[attempt]
-        log.warn('Retrying YouTube operation', { operation, code: failure.code, attempt: attempt + 1 })
-        this.emit({
-          batch: this.store.getBatch(this.activeBatchId ?? '')!,
-          message: `Retrying ${operation}`,
-          retryInSeconds: Math.ceil(milliseconds / 1000)
-        })
+        const batch = this.store.getBatch(this.activeBatchId ?? '')
+        if (batch) this.emit({ batch, message: `Retrying ${operation}`, retryInSeconds: Math.ceil(milliseconds / 1000) })
         await delay(milliseconds)
       }
     }
@@ -260,7 +253,7 @@ export class SchedulerService {
   }
 
   private emit(event: ProgressEvent): void {
-    if (event.batch) this.window()?.webContents.send('batch:progress', event)
+    for (const listener of this.listeners) listener(event)
   }
 
   private rememberStreamKey(batchId: string, streamId: string, streamKey: string): void {

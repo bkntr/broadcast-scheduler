@@ -4,10 +4,11 @@
     <meta charset="UTF-8" />
     <meta
       http-equiv="Content-Security-Policy"
-      content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; connect-src 'self'; font-src 'self' data:; object-src 'none'; base-uri 'none'; frame-src 'none'"
+      content="default-src 'self'; script-src 'self' https://accounts.google.com; worker-src 'self' blob:; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; connect-src 'self' https://accounts.google.com https://oauth2.googleapis.com https://www.googleapis.com; font-src 'self' data:; object-src 'none'; base-uri 'none'; frame-src https://accounts.google.com; form-action 'self' https://accounts.google.com"
     />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>YouTube Scheduler</title>
+    <link rel="icon" href="/icon.png" />
   </head>
   <body>
     <div id="app"></div>

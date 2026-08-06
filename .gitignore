@@ -22,7 +22,7 @@ oauth-client.bin
 *.jks
 *.keystore
 
-# Electron / Node
+# Node / web build
 node_modules/
 out/
 release/

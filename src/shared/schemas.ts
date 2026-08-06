@@ -27,7 +27,6 @@ export const scheduleInputSchema = z.object({
 export const settingsSchema = z.object({
   locale: z.enum(['en', 'fr']),
   theme: z.enum(['system', 'light', 'dark']),
-  updateChecks: z.boolean(),
   selectedChannelId: z.string().optional(),
   lastSchedule: scheduleInputSchema.partial().optional()
 })
