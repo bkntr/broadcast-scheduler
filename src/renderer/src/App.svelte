@@ -338,14 +338,15 @@
 
   function dateTimeLabel(
     item: { scheduledUtc: string; timezoneOffset?: string; issues?: Array<{ code: string }> },
-    timezone = form.timeZone
+    timezone = form.timeZone,
+    includeWeekday = false
   ): string {
     if (!item.scheduledUtc) return '—'
-    const label = new Intl.DateTimeFormat(locale === 'fr' ? 'fr-FR' : 'en-US', {
-      dateStyle: 'medium',
-      timeStyle: 'short',
-      timeZone: timezone
-    }).format(new Date(item.scheduledUtc))
+    const formatOptions: Intl.DateTimeFormatOptions = includeWeekday
+      ? { weekday: 'long', year: 'numeric', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit', timeZone: timezone }
+      : { dateStyle: 'medium', timeStyle: 'short', timeZone: timezone }
+    const label = new Intl.DateTimeFormat(locale === 'fr' ? 'fr-FR' : 'en-US', formatOptions)
+      .format(new Date(item.scheduledUtc))
     const showOffset = item.timezoneOffset && item.issues?.some((issue) => issue.code === 'ambiguous-time')
     return label + (showOffset ? ` (${item.timezoneOffset})` : '')
   }
@@ -638,7 +639,7 @@
         {#each preview.items as item}
           <div class:excluded={!item.included} class="review-row">
             <input type="checkbox" aria-label={t('include')} checked={item.included} onchange={() => toggleIncluded(item.id)} />
-            <span>{dateTimeLabel(item)}<br /><small class="muted">#{item.session}</small></span>
+            <span>{dateTimeLabel(item, form.timeZone, true)}<br /><small class="muted">#{item.session}</small></span>
             <span class="review-title">{item.title}{#each item.issues as issue}<span class:warning-text={issue.severity === 'warning'} class="issue">{displayIssue(issue.code, issue.message)}</span>{/each}</span>
             <button class="icon-button" disabled={!item.description} title={t('previewDescription')} onclick={() => showDescription(item.description)}><Eye size={17} /></button>
           </div>
