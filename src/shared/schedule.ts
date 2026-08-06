@@ -17,14 +17,14 @@ function localeTag(locale: Locale): string {
   return locale === 'fr' ? 'fr-FR' : 'en-US'
 }
 
-function formatDate(date: Temporal.PlainDate, locale: Locale, style: DateStyle): string {
+export function formatScheduleDate(date: Temporal.PlainDate, locale: Locale, style: DateStyle): string {
   return new Intl.DateTimeFormat(localeTag(locale), {
     dateStyle: style,
     timeZone: 'UTC'
   }).format(new Date(`${date.toString()}T12:00:00Z`))
 }
 
-function formatTime(time: Temporal.PlainTime, locale: Locale, style: TimeStyle): string {
+export function formatScheduleTime(time: Temporal.PlainTime, locale: Locale, style: TimeStyle): string {
   return new Intl.DateTimeFormat(localeTag(locale), {
     hour: '2-digit',
     minute: '2-digit',
@@ -201,8 +201,8 @@ export function generateSchedulePreview(
     const time = Temporal.PlainTime.from(item.localTime)
     const values = {
       session,
-      date: formatDate(date, input.locale, input.dateStyle),
-      time: formatTime(time, input.locale, input.timeStyle)
+      date: formatScheduleDate(date, input.locale, input.dateStyle),
+      time: formatScheduleTime(time, input.locale, input.timeStyle)
     }
     const renderedTitle = renderTemplate(input.titleTemplate, values)
     const renderedDescription = renderTemplate(input.descriptionTemplate, values)

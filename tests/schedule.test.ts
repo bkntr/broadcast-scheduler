@@ -1,6 +1,11 @@
 import { describe, expect, it } from 'vitest'
 import { Temporal } from '@js-temporal/polyfill'
-import { generateSchedulePreview, renderTemplate } from '../src/shared/schedule'
+import {
+  formatScheduleDate,
+  formatScheduleTime,
+  generateSchedulePreview,
+  renderTemplate
+} from '../src/shared/schedule'
 import type { ScheduleInput } from '../src/shared/types'
 
 function input(overrides: Partial<ScheduleInput> = {}): ScheduleInput {
@@ -145,5 +150,21 @@ describe('renderTemplate', () => {
       value: '3: Jul 20, 2026 20:00 {unknown}',
       unknown: ['unknown']
     })
+  })
+})
+
+describe('schedule format examples', () => {
+  const date = Temporal.PlainDate.from('2026-09-06')
+  const time = Temporal.PlainTime.from('14:30')
+
+  it('formats each date style using the schedule formatter', () => {
+    expect(['short', 'medium', 'long'].map((style) =>
+      formatScheduleDate(date, 'en', style as 'short' | 'medium' | 'long')
+    )).toEqual(['9/6/26', 'Sep 6, 2026', 'September 6, 2026'])
+  })
+
+  it('formats 24-hour and 12-hour examples using the schedule formatter', () => {
+    expect(formatScheduleTime(time, 'en', '24h')).toBe('14:30')
+    expect(formatScheduleTime(time, 'en', '12h')).toBe('02:30 PM')
   })
 })

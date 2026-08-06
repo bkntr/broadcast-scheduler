@@ -22,18 +22,20 @@
     UserRoundCheck,
     X
   } from '@lucide/svelte'
-  import { generateSchedulePreview } from '../../shared/schedule'
+  import { formatScheduleDate, formatScheduleTime, generateSchedulePreview } from '../../shared/schedule'
   import type {
     AppSettings,
     AuthState,
     BatchRecord,
+    DateStyle,
     LiveStreamSummary,
     Locale,
     PlaylistSummary,
     ScheduleInput,
     SchedulePreview,
     StreamKeyMode,
-    ThumbnailInfo
+    ThumbnailInfo,
+    TimeStyle
   } from '../../shared/types'
   import { translate } from './i18n'
 
@@ -81,7 +83,23 @@
     : 0)
   const activeStreamIds = $derived([...new Set(activeBatch?.items.flatMap((item) => item.streamId ? [item.streamId] : []) ?? [])])
   const availableLiveStreams = $derived(auth.selectedChannelId ? liveStreamsByChannel[auth.selectedChannelId] ?? [] : [])
+  const dateFormatExample = Temporal.Now.plainDateISO(systemTimeZone())
+  const timeFormatExample = Temporal.PlainTime.from('14:30')
   const t = (key: string, values: Record<string, string | number> = {}): string => translate(locale, key, values)
+
+  function formatDateOption(style: DateStyle): string {
+    return t('formatExample', {
+      format: t(style),
+      example: formatScheduleDate(dateFormatExample, locale, style)
+    })
+  }
+
+  function formatTimeOption(style: TimeStyle): string {
+    return t('formatExample', {
+      format: t(style === '24h' ? 'hour24' : 'hour12'),
+      example: formatScheduleTime(timeFormatExample, locale, style)
+    })
+  }
 
   function showDescription(description: string): void {
     descriptionModal = description
@@ -661,11 +679,11 @@
             <div class="span-4 grid">
               <div class="field span-12">
                 <label for="date-format">{t('dateFormat')}</label>
-                <select id="date-format" class="select" bind:value={form.dateStyle}><option value="short">{t('short')}</option><option value="medium">{t('medium')}</option><option value="long">{t('long')}</option></select>
+                <select id="date-format" class="select" bind:value={form.dateStyle}><option value="short">{formatDateOption('short')}</option><option value="medium">{formatDateOption('medium')}</option><option value="long">{formatDateOption('long')}</option></select>
               </div>
               <div class="field span-12">
                 <label for="time-format">{t('timeFormat')}</label>
-                <select id="time-format" class="select" bind:value={form.timeStyle}><option value="24h">24 h</option><option value="12h">12 h</option></select>
+                <select id="time-format" class="select" bind:value={form.timeStyle}><option value="24h">{formatTimeOption('24h')}</option><option value="12h">{formatTimeOption('12h')}</option></select>
               </div>
             </div>
             <div class="field span-12">
