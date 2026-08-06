@@ -1,6 +1,6 @@
-# YouTube Scheduler
+# Broadcast Scheduler
 
-YouTube Scheduler is a bilingual static Svelte web app for reviewing and
+Broadcast Scheduler is a bilingual static Svelte web app for reviewing and
 creating recurring YouTube Live broadcasts. It runs entirely in the browser
 and can be deployed to Netlify without a backend.
 
@@ -60,7 +60,7 @@ origins, so changing Netlify deploy-preview URLs are unsuitable for OAuth.
 2. Open **APIs & Services** → **Library**, find **YouTube Data API v3**, and
    enable it.
 3. Open **Google Auth Platform** and complete **Branding**:
-   - use an app name users will recognize, such as `YouTube Scheduler`;
+   - use an app name users will recognize, such as `Broadcast Scheduler`;
    - select your user-support email; and
    - provide the developer contact email.
 4. Under **Audience**, select **External** unless this is an internal Google
@@ -91,7 +91,7 @@ channels. Add new testers here before they try to connect.
 
 1. In **Google Auth Platform** → **Clients**, choose **Create client**.
 2. Select **Web application**. Do not select Desktop app.
-3. Give it a recognizable name, such as `YouTube Scheduler Web`.
+3. Give it a recognizable name, such as `Broadcast Scheduler Web`.
 4. Under **Authorized JavaScript origins**, add the stable origin copied from
    Netlify:
 

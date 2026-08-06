@@ -20,7 +20,6 @@
     Settings,
     Trash2,
     UserRoundCheck,
-    Video,
     X
   } from '@lucide/svelte'
   import { generateSchedulePreview } from '../../shared/schedule'
@@ -445,7 +444,7 @@
 <div class="app-shell">
   <header class="topbar">
     <div class="brand">
-      <span class="brand-mark"><Video size={20} fill="currentColor" /></span>
+      <span class="brand-mark"><img src="/icon.png" alt="" /></span>
       <span>{t('appName')}</span>
     </div>
     {#if auth.status === 'connected'}
@@ -699,7 +698,7 @@
       {#if batches.length}<div class="actions"><button class="button danger" onclick={clearHistory}><Trash2 size={16} /> {t('clearHistory')}</button></div>{/if}
 
     {:else if view === 'settings'}
-      <h1 class="page-heading">{t('settings')}</h1><p class="page-intro">YouTube Scheduler</p>
+      <h1 class="page-heading">{t('settings')}</h1><p class="page-intro">{t('appName')}</p>
       <div class="card card-section">
         <h2 class="section-title">{t('appearance')}</h2>
         <div class="setting-row"><div><strong>{t('language')}</strong></div><select class="select" bind:value={locale} onchange={saveSettings}><option value="en">English</option><option value="fr">Français</option></select></div>

@@ -1,7 +1,7 @@
 import type { Locale } from '../../shared/types'
 
 const messages: Record<string, Record<Locale, string>> = {
-  appName: { en: 'YouTube Scheduler', fr: 'YouTube Scheduler' },
+  appName: { en: 'Broadcast Scheduler', fr: 'Broadcast Scheduler' },
   mainNavigation: { en: 'Main navigation', fr: 'Navigation principale' },
   schedule: { en: 'Schedule', fr: 'Planifier' },
   history: { en: 'History', fr: 'Historique' },

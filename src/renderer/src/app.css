@@ -23,7 +23,8 @@ button:focus-visible, summary:focus-visible, a:focus-visible { outline: 2px soli
 .topbar { position: sticky; top: 0; z-index: 20; display: flex; align-items: center; gap: 20px; padding: 12px 24px; border-bottom: 1px solid #dce3ef; background: rgba(255,255,255,.92); backdrop-filter: blur(16px); }
 .dark .topbar { border-color: #26334a; background: rgba(15,23,42,.92); }
 .brand { display: flex; align-items: center; gap: 10px; font-weight: 750; white-space: nowrap; }
-.brand-mark { display: grid; place-items: center; width: 34px; height: 34px; border-radius: 10px; color: white; background: #e11d48; box-shadow: 0 6px 16px rgba(225,29,72,.25); }
+.brand-mark { display: block; width: 34px; height: 34px; overflow: hidden; border-radius: 10px; box-shadow: 0 6px 16px rgba(23,32,51,.2); }
+.brand-mark img { display: block; width: 100%; height: 100%; object-fit: cover; }
 .nav { display: flex; gap: 4px; }
 .nav-button { display: inline-flex; align-items: center; gap: 7px; border: 0; border-radius: 9px; padding: 8px 12px; background: transparent; color: #526078; }
 .nav-button.active { color: #0f172a; background: #e9eef7; }

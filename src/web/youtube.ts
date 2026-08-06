@@ -51,17 +51,17 @@ export class YouTubeService {
     }
 
     const title = rotate
-      ? `YouTube Scheduler — ${channel.title} — ${batchId.slice(0, 8)}`
-      : `YouTube Scheduler — ${channel.title}`
-    const created = await this.createStream(title, 'Reusable stream managed by YouTube Scheduler.', true)
+      ? `Broadcast Scheduler — ${channel.title} — ${batchId.slice(0, 8)}`
+      : `Broadcast Scheduler — ${channel.title}`
+    const created = await this.createStream(title, 'Reusable stream managed by Broadcast Scheduler.', true)
     await this.store.setChannelStream(channel.id, created.streamId)
     return created
   }
 
   async createItemStream(identifier: string): Promise<{ streamId: string; streamKey: string }> {
-    const title = `YouTube Scheduler — ${identifier}`
+    const title = `Broadcast Scheduler — ${identifier}`
     return await this.findRecentStream(title)
-      ?? await this.createStream(title, 'Stream managed by YouTube Scheduler.', true)
+      ?? await this.createStream(title, 'Stream managed by Broadcast Scheduler.', true)
   }
 
   async retrieveStreamKey(streamId: string): Promise<string> {

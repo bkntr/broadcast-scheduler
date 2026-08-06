@@ -254,7 +254,7 @@ export function installWebApi(): void {
     diagnostics: {
       copy: async () => {
         await navigator.clipboard.writeText([
-          `YouTube Scheduler ${packageJson.version}`,
+          `Broadcast Scheduler ${packageJson.version}`,
           `Platform: ${navigator.userAgentData?.platform ?? navigator.platform ?? 'browser'}`,
           `Browser: ${navigator.userAgent}`
         ].join('\n'))

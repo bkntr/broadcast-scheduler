@@ -1,6 +1,6 @@
 {
-  "name": "youtube-scheduler",
-  "productName": "YouTube Scheduler",
+  "name": "broadcast-scheduler",
+  "productName": "Broadcast Scheduler",
   "version": "0.1.0",
   "description": "Schedule recurring YouTube live broadcasts from a browser.",
   "author": "bkntr",
