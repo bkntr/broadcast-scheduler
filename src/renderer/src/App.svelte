@@ -24,7 +24,7 @@
     UserRoundCheck,
     X
   } from '@lucide/svelte'
-  import { formatScheduleDate, formatScheduleTime, generateSchedulePreview } from '../../shared/schedule'
+  import { formatScheduleDate, formatScheduleTime, generateSchedulePreview, renderTemplate } from '../../shared/schedule'
   import type {
     AppSettings,
     AuthState,
@@ -303,14 +303,32 @@
     return new Intl.DateTimeFormat(locale === 'fr' ? 'fr-FR' : 'en-US', { weekday: 'short', timeZone: 'UTC' }).format(date)
   }
 
+  function renderTemplateFromForm(template: string): string {
+    let date = dateFormatExample
+    try {
+      date = Temporal.PlainDate.from(form.startDate)
+    } catch {
+      // Keep the example useful while the date field is incomplete.
+    }
+
+    const times = form.startTimes.flatMap((value) => {
+      try {
+        return [Temporal.PlainTime.from(value)]
+      } catch {
+        return []
+      }
+    }).sort(Temporal.PlainTime.compare)
+
+    return renderTemplate(template, {
+      session: Number.isFinite(form.startingSession) ? form.startingSession : 1,
+      date: formatScheduleDate(date, locale, form.dateStyle),
+      time: formatScheduleTime(times[0] ?? timeFormatExample, locale, form.timeStyle)
+    }).value
+  }
+
   function firstRenderedDescription(): string {
     const generated = generateSchedulePreview(form)
     return generated.items[0]?.description || form.descriptionTemplate
-  }
-
-  function firstRenderedTitle(): string {
-    const generated = generateSchedulePreview(form)
-    return generated.items[0]?.title || form.titleTemplate
   }
 
   function displayIssue(code: string, fallback: string): string {
@@ -708,7 +726,7 @@
             <div class="field span-8">
               <label for="title-template">{t('titleTemplate')}</label>
               <input id="title-template" class="input" bind:value={form.titleTemplate} />
-              <span class="muted">{t('titleExample', { example: firstRenderedTitle() || '—' })}</span>
+              <span class="muted">{t('titleExample', { example: renderTemplateFromForm(form.titleTemplate) || '—' })}</span>
             </div>
             <div class="field span-4">
               <label for="visibility">{t('visibility')}</label>
