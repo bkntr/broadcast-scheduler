@@ -85,6 +85,7 @@
     : 0)
   const activeStreamIds = $derived([...new Set(activeBatch?.items.flatMap((item) => item.streamId ? [item.streamId] : []) ?? [])])
   const availableLiveStreams = $derived(auth.selectedChannelId ? liveStreamsByChannel[auth.selectedChannelId] ?? [] : [])
+  const timeZoneOptions = supportedTimeZones()
   const dateFormatExample = Temporal.Now.plainDateISO(systemTimeZone())
   const timeFormatExample = Temporal.PlainTime.from('14:30')
   const t = (key: string, values: Record<string, string | number> = {}): string => translate(locale, key, values)
@@ -110,6 +111,15 @@
 
   function systemTimeZone(): string {
     return Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC'
+  }
+
+  function supportedTimeZones(): string[] {
+    const detected = systemTimeZone()
+    const supported = typeof Intl.supportedValuesOf === 'function'
+      ? Intl.supportedValuesOf('timeZone')
+      : ['Europe/Paris', 'Asia/Jerusalem', 'America/New_York', 'America/Los_Angeles']
+
+    return [...new Set(['UTC', detected, ...supported])]
   }
 
   function defaultForm(language: Locale): ScheduleInput {
@@ -673,10 +683,10 @@
             </div>
             <div class="field span-4">
               <label for="timezone">{t('timezone')}</label>
-              <input id="timezone" class="input" list="timezone-options" bind:value={form.timeZone} />
-              <datalist id="timezone-options">
-                {#each ['UTC','Europe/Paris','Asia/Jerusalem','America/New_York','America/Los_Angeles'] as zone}<option value={zone}></option>{/each}
-              </datalist>
+              <select id="timezone" class="select" bind:value={form.timeZone}>
+                {#if !timeZoneOptions.includes(form.timeZone)}<option value={form.timeZone}>{form.timeZone}</option>{/if}
+                {#each timeZoneOptions as zone}<option value={zone}>{zone}</option>{/each}
+              </select>
             </div>
           </div>
         </section>
