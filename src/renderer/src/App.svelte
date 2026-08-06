@@ -296,6 +296,11 @@
     return generated.items[0]?.description || form.descriptionTemplate
   }
 
+  function firstRenderedTitle(): string {
+    const generated = generateSchedulePreview(form)
+    return generated.items[0]?.title || form.titleTemplate
+  }
+
   function displayIssue(code: string, fallback: string): string {
     const key = {
       'past': 'issuePast',
@@ -657,12 +662,23 @@
         </section>
 
         <section class="card-section">
-          <h2 class="section-title">{t('content')}</h2>
+          <div class="section-title-row">
+            <h2 class="section-title">{t('content')}</h2>
+            <div class="content-help">
+              <button
+                type="button"
+                class="content-help-button"
+                aria-label={t('placeholderHelp')}
+                aria-describedby="content-placeholder-help"
+              >?</button>
+              <span id="content-placeholder-help" class="content-help-tooltip" role="tooltip">{t('placeholders')}</span>
+            </div>
+          </div>
           <div class="grid">
             <div class="field span-8">
               <label for="title-template">{t('titleTemplate')}</label>
               <input id="title-template" class="input" bind:value={form.titleTemplate} />
-              <span class="muted">{t('placeholders')}</span>
+              <span class="muted">{t('titleExample', { example: firstRenderedTitle() || '—' })}</span>
             </div>
             <div class="field span-4">
               <label for="visibility">{t('visibility')}</label>
@@ -673,7 +689,6 @@
             <div class="field span-8">
               <label for="description">{t('description')}</label>
               <textarea id="description" class="textarea" bind:value={form.descriptionTemplate}></textarea>
-              <span class="muted">{t('placeholders')}</span>
               {#if form.descriptionTemplate}<button class="button secondary" style="align-self:flex-start" onclick={() => showDescription(firstRenderedDescription())}>{t('descriptionPreview')}</button>{/if}
             </div>
             <div class="span-4 grid">

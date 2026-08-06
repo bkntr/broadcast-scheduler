@@ -45,6 +45,16 @@ button:focus-visible, summary:focus-visible, a:focus-visible { outline: 2px soli
 .card-section + .card-section { border-top: 1px solid #e4e9f2; }
 .dark .card-section + .card-section { border-color: #26334a; }
 .section-title { margin: 0 0 16px; font-size: 17px; }
+.section-title-row { display: flex; align-items: center; gap: 7px; margin-bottom: 16px; }
+.section-title-row .section-title { margin: 0; }
+.content-help { position: relative; display: inline-flex; }
+.content-help-button { display: grid; place-items: center; width: 20px; height: 20px; padding: 0; border: 1px solid #aab6c8; border-radius: 50%; color: #64748b; background: transparent; font-size: 12px; font-weight: 800; line-height: 1; }
+.content-help-button:hover, .content-help-button:focus-visible { border-color: #e11d48; color: #be123c; }
+.dark .content-help-button { border-color: #64748b; color: #aab6cb; }
+.dark .content-help-button:hover, .dark .content-help-button:focus-visible { border-color: #fb7185; color: #fda4af; }
+.content-help-tooltip { position: absolute; z-index: 30; top: calc(100% + 8px); left: 50%; width: max-content; max-width: min(280px, calc(100vw - 48px)); padding: 7px 9px; border-radius: 7px; color: #fff; background: #172033; box-shadow: 0 8px 22px rgba(15,23,42,.2); font-size: 12px; font-weight: 500; line-height: 1.4; opacity: 0; pointer-events: none; transform: translateX(-50%) translateY(-2px); visibility: hidden; transition: opacity .12s, transform .12s, visibility .12s; }
+.content-help:hover .content-help-tooltip, .content-help:focus-within .content-help-tooltip { opacity: 1; transform: translateX(-50%) translateY(0); visibility: visible; }
+.dark .content-help-tooltip { color: #172033; background: #e8edf6; }
 .grid { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 16px; }
 .span-3 { grid-column: span 3; }.span-4 { grid-column: span 4; }.span-6 { grid-column: span 6; }.span-8 { grid-column: span 8; }.span-9 { grid-column: span 9; }.span-12 { grid-column: span 12; }
 .field { display: flex; flex-direction: column; gap: 7px; min-width: 0; }
