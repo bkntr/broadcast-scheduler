@@ -33,6 +33,23 @@ button:focus-visible, summary:focus-visible, a:focus-visible { outline: 2px soli
 .account { margin-left: auto; display: flex; align-items: center; gap: 9px; min-width: 0; }
 .avatar { width: 30px; height: 30px; border-radius: 50%; background: #dbe3f0; object-fit: cover; }
 .account-name { max-width: 180px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 14px; font-weight: 650; }
+.account-trigger { display: flex; align-items: center; gap: 9px; min-width: 0; border: 0; border-radius: 10px; padding: 5px 7px 5px 5px; color: inherit; background: transparent; }
+.account-trigger:hover, .account-trigger[data-state="open"] { background: #eef2f7; }
+.dark .account-trigger:hover, .dark .account-trigger[data-state="open"] { background: #26334a; }
+.account-chevron { flex: 0 0 auto; color: #64748b; transition: transform .15s ease; }
+.account-trigger[data-state="open"] .account-chevron { transform: rotate(180deg); }
+.account-menu { z-index: 40; min-width: 210px; max-width: min(300px, calc(100vw - 24px)); padding: 6px; border: 1px solid #dce3ef; border-radius: 11px; color: #172033; background: #fff; box-shadow: 0 14px 34px rgba(15,23,42,.16); outline: none; }
+.dark .account-menu { border-color: #3a4961; color: #e8edf6; background: #182337; box-shadow: 0 18px 40px rgba(0,0,0,.34); }
+.account-menu-heading { padding: 7px 9px 5px; color: #68768d; font-size: 11px; font-weight: 800; letter-spacing: .05em; text-transform: uppercase; }
+.dark .account-menu-heading { color: #9aabc3; }
+.account-menu-item { display: flex; align-items: center; gap: 9px; min-height: 36px; padding: 7px 9px; border-radius: 7px; font-size: 14px; font-weight: 600; outline: none; cursor: pointer; }
+.account-menu-item[data-highlighted] { background: #eef2f7; }
+.dark .account-menu-item[data-highlighted] { background: #26334a; }
+.account-menu-item.danger { color: #be123c; }
+.dark .account-menu-item.danger { color: #fda4af; }
+.account-menu-check { display: grid; place-items: center; width: 16px; flex: 0 0 auto; color: #e11d48; }
+.account-menu-separator { height: 1px; margin: 5px 3px; background: #e4e9f2; }
+.dark .account-menu-separator { background: #3a4961; }
 
 .main { width: min(1040px, calc(100% - 40px)); margin: 0 auto; padding: 32px 0 64px; }
 .page-heading { margin: 0 0 6px; font-size: clamp(25px, 3vw, 34px); line-height: 1.15; letter-spacing: -.025em; }

@@ -10,6 +10,7 @@ const messages: Record<string, Record<Locale, string>> = {
   connectBody: { en: 'Google authentication opens in a secure popup. You may need to reconnect after refreshing the page.', fr: 'L’authentification Google s’ouvre dans une fenêtre sécurisée. Une reconnexion peut être nécessaire après actualisation de la page.' },
   connect: { en: 'Connect YouTube', fr: 'Connecter YouTube' },
   reconnect: { en: 'Reconnect YouTube', fr: 'Reconnecter YouTube' },
+  accountMenu: { en: 'Open account menu', fr: 'Ouvrir le menu du compte' },
   disconnect: { en: 'Disconnect', fr: 'Déconnecter' },
   switchChannel: { en: 'Channel', fr: 'Chaîne' },
   authUnconfigured: { en: 'This deployment is missing its Google OAuth client ID. The site owner must configure it before users can connect.', fr: 'L’identifiant client OAuth Google manque à ce déploiement. Le propriétaire du site doit le configurer avant que les utilisateurs puissent se connecter.' },

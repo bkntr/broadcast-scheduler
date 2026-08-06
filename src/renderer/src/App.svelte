@@ -1,10 +1,11 @@
 <script lang="ts">
   import { onMount } from 'svelte'
   import { Temporal } from '@js-temporal/polyfill'
-  import { Dialog } from 'bits-ui'
+  import { Dialog, DropdownMenu } from 'bits-ui'
   import {
     CalendarDays,
     Check,
+    ChevronDown,
     ChevronRight,
     CircleAlert,
     CircleHelp,
@@ -15,6 +16,7 @@
     History,
     Image,
     LoaderCircle,
+    LogOut,
     Plus,
     RotateCw,
     Settings,
@@ -558,15 +560,33 @@
         <button class:active={view === 'settings'} class="nav-button" onclick={() => view = 'settings'}><Settings size={16} /> {t('settings')}</button>
       </nav>
       <div class="account">
-        {#if selectedChannel?.thumbnailUrl}<img class="avatar" src={selectedChannel.thumbnailUrl} alt="" />{:else}<span class="avatar"></span>{/if}
-        {#if auth.channels.length > 1}
-          <select class="select" aria-label={t('switchChannel')} value={auth.selectedChannelId ?? ''} onchange={(event) => selectChannel(event.currentTarget.value)}>
-            <option value="">{t('selectChannel')}</option>
-            {#each auth.channels as channel}<option value={channel.id}>{channel.title}</option>{/each}
-          </select>
-        {:else}
-          <span class="account-name">{selectedChannel?.title}</span>
-        {/if}
+        <DropdownMenu.Root>
+          <DropdownMenu.Trigger class="account-trigger" aria-label={t('accountMenu')}>
+            {#if selectedChannel?.thumbnailUrl}<img class="avatar" src={selectedChannel.thumbnailUrl} alt="" />{:else}<span class="avatar"></span>{/if}
+            <span class="account-name">{selectedChannel?.title}</span>
+            <ChevronDown class="account-chevron" size={15} />
+          </DropdownMenu.Trigger>
+          <DropdownMenu.Portal>
+            <DropdownMenu.Content class="account-menu" align="end" sideOffset={8}>
+              {#if auth.channels.length > 1}
+                <DropdownMenu.Group>
+                  <DropdownMenu.GroupHeading class="account-menu-heading">{t('switchChannel')}</DropdownMenu.GroupHeading>
+                  {#each auth.channels as channel}
+                    <DropdownMenu.Item class="account-menu-item" onSelect={() => void selectChannel(channel.id)}>
+                      <span class="account-menu-check">{#if channel.id === auth.selectedChannelId}<Check size={15} />{/if}</span>
+                      <span>{channel.title}</span>
+                    </DropdownMenu.Item>
+                  {/each}
+                </DropdownMenu.Group>
+                <DropdownMenu.Separator class="account-menu-separator" />
+              {/if}
+              <DropdownMenu.Item class="account-menu-item danger" onSelect={() => void disconnect()}>
+                <LogOut size={16} />
+                <span>{t('disconnect')}</span>
+              </DropdownMenu.Item>
+            </DropdownMenu.Content>
+          </DropdownMenu.Portal>
+        </DropdownMenu.Root>
       </div>
     {/if}
   </header>
