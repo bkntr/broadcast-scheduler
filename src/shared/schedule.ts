@@ -127,7 +127,7 @@ function operationCount(input: ScheduleInput, includedItems: number): number {
   if (includedItems === 0) return 0
   // Stream and broadcast inserts are preceded by recovery lookups so a lost
   // response can be resumed without blindly creating duplicates.
-  const sharedStreams = input.sharedStreamKey ? 2 : includedItems * 2
+  const sharedStreams = input.streamKeyMode === 'broadcast' ? includedItems * 2 : 2
   const perItem = 3
     + (input.privacy === 'public-at-start' ? 1 : 0)
     + (input.thumbnailPath ? 1 : 0)

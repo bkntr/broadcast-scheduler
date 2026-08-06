@@ -27,10 +27,12 @@
     AppSettings,
     AuthState,
     BatchRecord,
+    LiveStreamSummary,
     Locale,
     PlaylistSummary,
     ScheduleInput,
     SchedulePreview,
+    StreamKeyMode,
     ThumbnailInfo
   } from '../../shared/types'
   import { translate } from './i18n'
@@ -52,6 +54,9 @@
   let settings = $state<AppSettings>({ locale: 'en', theme: 'system' })
   let batches = $state<BatchRecord[]>([])
   let playlists = $state<PlaylistSummary[]>([])
+  let liveStreamsByChannel = $state<Record<string, LiveStreamSummary[]>>({})
+  let loadedLiveStreamChannels = $state(new Set<string>())
+  let liveStreamsLoading = $state(false)
   let thumbnail = $state<ThumbnailInfo>()
   let form = $state<ScheduleInput>(defaultForm('en'))
   let preview = $state<SchedulePreview>()
@@ -75,6 +80,7 @@
     ? Math.round((activeBatch.completedCount / activeBatch.items.length) * 100)
     : 0)
   const activeStreamIds = $derived([...new Set(activeBatch?.items.flatMap((item) => item.streamId ? [item.streamId] : []) ?? [])])
+  const availableLiveStreams = $derived(auth.selectedChannelId ? liveStreamsByChannel[auth.selectedChannelId] ?? [] : [])
   const t = (key: string, values: Record<string, string | number> = {}): string => translate(locale, key, values)
 
   function showDescription(description: string): void {
@@ -108,8 +114,8 @@
       playlistId: '',
       customPlaylistId: '',
       thumbnailPath: '',
-      sharedStreamKey: true,
-      rotateStreamKey: false,
+      streamKeyMode: 'existing',
+      existingStreamId: undefined,
       autoStart: true,
       autoStop: true,
       madeForKids: false
@@ -118,12 +124,19 @@
 
   function mergeRemembered(base: ScheduleInput, remembered?: Partial<ScheduleInput>): ScheduleInput {
     if (!remembered) return base
+    const legacy = remembered as Partial<ScheduleInput> & {
+      sharedStreamKey?: boolean
+      rotateStreamKey?: boolean
+    }
+    const streamKeyMode = remembered.streamKeyMode
+      ?? (legacy.sharedStreamKey === false ? 'broadcast' : legacy.rotateStreamKey ? 'batch' : 'existing')
     return {
       ...base,
       ...remembered,
       startDate: base.startDate,
       thumbnailPath: '',
-      rotateStreamKey: false,
+      streamKeyMode,
+      existingStreamId: undefined,
       locale: base.locale,
       startTimes: remembered.startTimes?.length ? [...remembered.startTimes] : base.startTimes,
       weekdays: remembered.weekdays?.length ? [...remembered.weekdays] : base.weekdays
@@ -152,6 +165,50 @@
     }
   }
 
+  async function loadLiveStreams(refresh = false): Promise<LiveStreamSummary[]> {
+    const channelId = auth.selectedChannelId
+    if (!channelId) return []
+    if (!refresh && loadedLiveStreamChannels.has(channelId)) {
+      return liveStreamsByChannel[channelId] ?? []
+    }
+    liveStreamsLoading = true
+    try {
+      const streams = await window.desktop.youtube.liveStreams(refresh)
+      liveStreamsByChannel = { ...liveStreamsByChannel, [channelId]: streams }
+      const loaded = new Set(loadedLiveStreamChannels)
+      loaded.add(channelId)
+      loadedLiveStreamChannels = loaded
+      if (auth.selectedChannelId === channelId
+        && (!form.existingStreamId || !streams.some((stream) => stream.id === form.existingStreamId))) {
+        form.existingStreamId = streams[0]?.id
+      }
+      return streams
+    } finally {
+      liveStreamsLoading = false
+    }
+  }
+
+  async function refreshLiveStreams(): Promise<void> {
+    globalError = undefined
+    try {
+      await loadLiveStreams(true)
+    } catch (error) {
+      globalError = errorMessage(error)
+    }
+  }
+
+  function setStreamKeyMode(mode: StreamKeyMode): void {
+    form.streamKeyMode = mode
+    if (mode === 'existing') {
+      void loadLiveStreams().catch((error) => { globalError = errorMessage(error) })
+    }
+  }
+
+  function usesSharedStreamKey(input: ScheduleInput): boolean {
+    const legacy = input as ScheduleInput & { sharedStreamKey?: boolean }
+    return input.streamKeyMode ? input.streamKeyMode !== 'broadcast' : legacy.sharedStreamKey !== false
+  }
+
   async function connect(): Promise<void> {
     busy = true
     globalError = undefined
@@ -170,7 +227,11 @@
     try {
       auth = await window.desktop.auth.selectChannel(channelId)
       settings.selectedChannelId = channelId
-      await loadPlaylists()
+      form.existingStreamId = undefined
+      await Promise.all([
+        loadPlaylists(),
+        form.streamKeyMode === 'existing' ? loadLiveStreams() : Promise.resolve([])
+      ])
     } catch (error) {
       globalError = errorMessage(error)
     }
@@ -181,6 +242,8 @@
       await window.desktop.auth.disconnect()
       auth = { status: 'disconnected', channels: [] }
       playlists = []
+      liveStreamsByChannel = {}
+      loadedLiveStreamChannels = new Set()
       settings.selectedChannelId = undefined
       view = 'schedule'
     } catch (error) {
@@ -251,7 +314,20 @@
     form.thumbnailPath = ''
   }
 
-  function goToReview(): void {
+  async function goToReview(): Promise<void> {
+    globalError = undefined
+    if (form.streamKeyMode === 'existing') {
+      try {
+        const streams = await loadLiveStreams()
+        if (!streams.length || !form.existingStreamId) {
+          globalError = t('noExistingStreamKeys')
+          return
+        }
+      } catch (error) {
+        globalError = errorMessage(error)
+        return
+      }
+    }
     form.locale = locale
     excluded = new Set()
     preview = generateSchedulePreview(form, excluded)
@@ -387,6 +463,10 @@
         auth = fixture.auth
         batches = fixture.batches
         form = fixture.form
+        if (fixture.liveStreams && fixture.auth.selectedChannelId) {
+          liveStreamsByChannel = { [fixture.auth.selectedChannelId]: fixture.liveStreams }
+          loadedLiveStreamChannels = new Set([fixture.auth.selectedChannelId])
+        }
         preview = fixture.preview
         activeBatch = fixture.activeBatch
         globalError = fixture.globalError
@@ -602,7 +682,11 @@
           </div>
         </section>
 
-        <details>
+        <details ontoggle={(event) => {
+          if (event.currentTarget.open && form.streamKeyMode === 'existing') {
+            void loadLiveStreams().catch((error) => { globalError = errorMessage(error) })
+          }
+        }}>
           <summary class="advanced-summary">{t('advanced')}</summary>
           <div class="advanced-content grid">
             <div class="field span-6">
@@ -615,8 +699,36 @@
               {#if form.playlistId === '__custom__'}<input class="input" aria-label={t('customId')} placeholder={t('customId')} bind:value={form.customPlaylistId} />{/if}
             </div>
             <div class="span-6"></div>
-            <label class="checkbox-row span-6"><input type="checkbox" bind:checked={form.sharedStreamKey} /><span>{t('sharedKey')}</span></label>
-            <label class="checkbox-row span-6"><input type="checkbox" disabled={!form.sharedStreamKey} bind:checked={form.rotateStreamKey} /><span>{t('rotateKey')}</span></label>
+            <div class="field span-6">
+              <label for="stream-key-mode">{t('streamKey')}</label>
+              <select id="stream-key-mode" class="select" value={form.streamKeyMode} onchange={(event) => setStreamKeyMode(event.currentTarget.value as StreamKeyMode)}>
+                <option value="existing">{t('streamKeyExisting')}</option>
+                <option value="batch">{t('streamKeyBatch')}</option>
+                <option value="broadcast">{t('streamKeyBroadcast')}</option>
+              </select>
+              <span class="muted">{t(form.streamKeyMode === 'existing' ? 'streamKeyExistingHelp' : form.streamKeyMode === 'batch' ? 'streamKeyBatchHelp' : 'streamKeyBroadcastHelp')}</span>
+            </div>
+            {#if form.streamKeyMode === 'existing'}
+              <div class="field span-6">
+                <label for="existing-stream-key">{t('existingStreamKey')}</label>
+                <div class="select-with-action">
+                  <select id="existing-stream-key" class="select" disabled={liveStreamsLoading || !availableLiveStreams.length} bind:value={form.existingStreamId}>
+                    {#if liveStreamsLoading && !availableLiveStreams.length}
+                      <option value="">{t('loadingStreamKeys')}</option>
+                    {:else if !availableLiveStreams.length}
+                      <option value="">{t('noStreamKeys')}</option>
+                    {:else}
+                      {#each availableLiveStreams as stream}<option value={stream.id}>{stream.title}</option>{/each}
+                    {/if}
+                  </select>
+                  <button class="icon-button bordered" disabled={liveStreamsLoading} title={t('refreshStreamKeys')} aria-label={t('refreshStreamKeys')} onclick={refreshLiveStreams}>
+                    <RotateCw class={liveStreamsLoading ? 'animate-spin' : undefined} size={17} />
+                  </button>
+                </div>
+              </div>
+            {:else}
+              <div class="span-6"></div>
+            {/if}
             <label class="checkbox-row span-4"><input type="checkbox" bind:checked={form.autoStart} /><span>{t('autoStart')}</span></label>
             <label class="checkbox-row span-4"><input type="checkbox" bind:checked={form.autoStop} /><span>{t('autoStop')}</span></label>
             <label class="checkbox-row span-4"><input type="checkbox" bind:checked={form.madeForKids} /><span>{t('madeForKids')}</span></label>
@@ -624,7 +736,7 @@
           </div>
         </details>
       </div>
-      <div class="actions"><button class="button primary" onclick={goToReview}>{t('reviewSchedule')} <ChevronRight size={17} /></button></div>
+      <div class="actions"><button class="button primary" disabled={liveStreamsLoading} onclick={goToReview}>{t('reviewSchedule')} <ChevronRight size={17} /></button></div>
 
     {:else if view === 'review' && preview}
       <button class="button secondary" onclick={() => view = 'schedule'}>{t('back')}</button>
@@ -653,7 +765,7 @@
           <div class="success-icon"><Check size={31} /></div>
           <h1 class="page-heading">{t('successTitle')}</h1>
           <p class="page-intro">{t('successBody')}</p>
-          {#if activeBatch.input.sharedStreamKey && activeStreamIds[0]}
+          {#if usesSharedStreamKey(activeBatch.input) && activeStreamIds[0]}
             <div class="stream-key">
               <span style="flex:1">{visibleStreamIds.has(activeStreamIds[0]) && streamKeys[activeStreamIds[0]] ? streamKeys[activeStreamIds[0]] : '••••••••••••••••••••••••'}</span>
               <button class="icon-button" title={visibleStreamIds.has(activeStreamIds[0]) ? t('hideKey') : t('revealKey')} onclick={() => revealStreamKey(activeStreamIds[0])}>{#if visibleStreamIds.has(activeStreamIds[0])}<EyeOff size={18} />{:else}<Eye size={18} />{/if}</button>
@@ -663,7 +775,7 @@
           {#if copied}<p class="muted">{t('copied')}</p>{/if}
           <div class="review-list card" style="margin-top:18px">
             {#each activeBatch.items as item}
-              <div class="review-row" style="grid-template-columns:190px 1fr auto"><span>{dateTimeLabel(item, activeBatch.input.timeZone)}</span><span class="review-title">{item.title}{#if !activeBatch.input.sharedStreamKey && item.streamId}<span class="stream-key" style="margin-top:8px;font-weight:400"><span style="flex:1">{visibleStreamIds.has(item.streamId) && streamKeys[item.streamId] ? streamKeys[item.streamId] : '••••••••••••••••••••••••'}</span><button class="icon-button" title={visibleStreamIds.has(item.streamId) ? t('hideKey') : t('revealKey')} onclick={() => revealStreamKey(item.streamId!)}>{#if visibleStreamIds.has(item.streamId)}<EyeOff size={16} />{:else}<Eye size={16} />{/if}</button>{#if visibleStreamIds.has(item.streamId) && streamKeys[item.streamId]}<button class="icon-button" title={t('copy')} onclick={() => copyText(streamKeys[item.streamId!])}><Clipboard size={16} /></button>{/if}</span>{/if}</span>{#if item.broadcastId}<button class="button secondary" onclick={() => window.desktop.external.open(`https://studio.youtube.com/video/${item.broadcastId}/livestreaming`)}>{t('openStudio')} <ExternalLink size={15} /></button>{/if}</div>
+              <div class="review-row" style="grid-template-columns:190px 1fr auto"><span>{dateTimeLabel(item, activeBatch.input.timeZone)}</span><span class="review-title">{item.title}{#if !usesSharedStreamKey(activeBatch.input) && item.streamId}<span class="stream-key" style="margin-top:8px;font-weight:400"><span style="flex:1">{visibleStreamIds.has(item.streamId) && streamKeys[item.streamId] ? streamKeys[item.streamId] : '••••••••••••••••••••••••'}</span><button class="icon-button" title={visibleStreamIds.has(item.streamId) ? t('hideKey') : t('revealKey')} onclick={() => revealStreamKey(item.streamId!)}>{#if visibleStreamIds.has(item.streamId)}<EyeOff size={16} />{:else}<Eye size={16} />{/if}</button>{#if visibleStreamIds.has(item.streamId) && streamKeys[item.streamId]}<button class="icon-button" title={t('copy')} onclick={() => copyText(streamKeys[item.streamId!])}><Clipboard size={16} /></button>{/if}</span>{/if}</span>{#if item.broadcastId}<button class="button secondary" onclick={() => window.desktop.external.open(`https://studio.youtube.com/video/${item.broadcastId}/livestreaming`)}>{t('openStudio')} <ExternalLink size={15} /></button>{/if}</div>
             {/each}
           </div>
           <div class="actions"><button class="button primary" onclick={newSchedule}>{t('newSchedule')}</button></div>

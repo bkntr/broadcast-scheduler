@@ -5,6 +5,7 @@ import type {
   AuthState,
   BatchRecord,
   ChannelSummary,
+  LiveStreamSummary,
   PlaylistSummary,
   ProgressEvent,
   ScheduleInput,
@@ -82,7 +83,10 @@ export interface WebApi {
     selectChannel(channelId: string): Promise<AuthState>
     disconnect(): Promise<void>
   }
-  youtube: { playlists(): Promise<PlaylistSummary[]> }
+  youtube: {
+    playlists(): Promise<PlaylistSummary[]>
+    liveStreams(refresh?: boolean): Promise<LiveStreamSummary[]>
+  }
   thumbnail: {
     choose(): Promise<ThumbnailInfo | undefined>
     remove(reference: string): Promise<void>
@@ -174,6 +178,10 @@ export function installWebApi(): void {
       playlists: async () => {
         await initialize()
         return await youtube.playlists()
+      },
+      liveStreams: async () => {
+        await initialize()
+        return await youtube.liveStreams()
       }
     },
     thumbnail: {
@@ -214,7 +222,7 @@ export function installWebApi(): void {
         const request = batchStartSchema.parse({ input: rawInput, excludedIds })
         const channel = selectedChannel(await auth.getState())
         const settings = store.getSettings()
-        const { startDate: _startDate, thumbnailPath: _thumbnailPath, rotateStreamKey: _rotateStreamKey, ...remembered } = request.input
+        const { startDate: _startDate, thumbnailPath: _thumbnailPath, existingStreamId: _existingStreamId, ...remembered } = request.input
         settings.lastSchedule = remembered
         await store.setSettings(settings)
         return await scheduler.start(request.input, request.excludedIds, channel)

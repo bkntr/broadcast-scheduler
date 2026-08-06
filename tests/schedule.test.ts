@@ -21,8 +21,8 @@ function input(overrides: Partial<ScheduleInput> = {}): ScheduleInput {
     playlistId: '',
     customPlaylistId: '',
     thumbnailPath: '',
-    sharedStreamKey: true,
-    rotateStreamKey: false,
+    streamKeyMode: 'existing',
+    existingStreamId: 'existing-stream',
     autoStart: true,
     autoStop: true,
     madeForKids: false,
@@ -119,6 +119,18 @@ describe('generateSchedulePreview', () => {
       playlistId: 'playlist'
     }), new Set(), beforeSchedule)
     expect(result.operationCount).toBe(16)
+  })
+
+  it('keeps legacy stream-key settings compatible with saved batches', () => {
+    const legacy = { ...input(), sharedStreamKey: false, rotateStreamKey: false } as ScheduleInput & {
+      sharedStreamKey: boolean
+      rotateStreamKey: boolean
+    }
+    delete (legacy as Partial<ScheduleInput>).streamKeyMode
+    delete (legacy as Partial<ScheduleInput>).existingStreamId
+    const result = generateSchedulePreview(legacy, new Set(), beforeSchedule)
+    expect(result.errors).toEqual([])
+    expect(result.operationCount).toBe(15)
   })
 
   it('requires a value for the manual playlist option', () => {

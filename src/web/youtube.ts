@@ -1,4 +1,4 @@
-import type { ChannelSummary, PlaylistSummary, ScheduleInput } from '../shared/types'
+import type { ChannelSummary, LiveStreamSummary, PlaylistSummary, ScheduleInput } from '../shared/types'
 import type { AuthService } from './auth'
 import { AppError, toAppError } from './errors'
 import type { BrowserStore } from './storage'
@@ -24,6 +24,21 @@ export class YouTubeService {
     do {
       const response = await this.request<ListResponse<{ id?: string; snippet?: { title?: string } }>>('playlists', {
         part: 'snippet', mine: 'true', maxResults: '50', pageToken
+      })
+      result.push(...(response.items ?? []).flatMap((item) => item.id
+        ? [{ id: item.id, title: item.snippet?.title ?? item.id }]
+        : []))
+      pageToken = response.nextPageToken
+    } while (pageToken)
+    return result.sort((left, right) => left.title.localeCompare(right.title))
+  }
+
+  async liveStreams(): Promise<LiveStreamSummary[]> {
+    const result: LiveStreamSummary[] = []
+    let pageToken: string | undefined
+    do {
+      const response = await this.request<ListResponse<{ id?: string; snippet?: { title?: string } }>>('liveStreams', {
+        part: 'id,snippet', mine: 'true', maxResults: '50', pageToken
       })
       result.push(...(response.items ?? []).flatMap((item) => item.id
         ? [{ id: item.id, title: item.snippet?.title ?? item.id }]

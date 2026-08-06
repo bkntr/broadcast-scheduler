@@ -74,6 +74,9 @@ button:focus-visible, summary:focus-visible, a:focus-visible { outline: 2px soli
 .icon-button { display: inline-grid; place-items: center; width: 36px; height: 36px; padding: 0; border: 0; border-radius: 9px; color: #64748b; background: transparent; }
 .icon-button:hover { background: #eef2f7; color: #be123c; }
 .dark .icon-button:hover { background: #26334a; color: #fda4af; }
+.icon-button.bordered { flex: 0 0 auto; border: 1px solid #cfd8e7; background: #fff; }
+.dark .icon-button.bordered { border-color: #3a4961; background: #182337; }
+.select-with-action { display: flex; align-items: center; gap: 7px; }
 .advanced-summary { cursor: pointer; padding: 18px 22px; font-weight: 750; }
 .advanced-content { padding: 0 22px 22px; }
 .thumbnail-box { display: flex; align-items: center; gap: 14px; }

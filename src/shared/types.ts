@@ -3,6 +3,7 @@ export type Cadence = 'daily' | 'weekly' | 'weekdays'
 export type Privacy = 'private' | 'unlisted' | 'public' | 'public-at-start'
 export type DateStyle = 'short' | 'medium' | 'long'
 export type TimeStyle = '24h' | '12h'
+export type StreamKeyMode = 'existing' | 'batch' | 'broadcast'
 export type BatchStatus = 'pending' | 'running' | 'paused' | 'failed' | 'completed'
 export type ItemStatus = 'pending' | 'running' | 'failed' | 'completed'
 
@@ -13,6 +14,11 @@ export interface ChannelSummary {
 }
 
 export interface PlaylistSummary {
+  id: string
+  title: string
+}
+
+export interface LiveStreamSummary {
   id: string
   title: string
 }
@@ -41,8 +47,8 @@ export interface ScheduleInput {
   playlistId?: string
   customPlaylistId?: string
   thumbnailPath?: string
-  sharedStreamKey: boolean
-  rotateStreamKey: boolean
+  streamKeyMode: StreamKeyMode
+  existingStreamId?: string
   autoStart: boolean
   autoStop: boolean
   madeForKids: boolean

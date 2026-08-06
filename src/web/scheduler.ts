@@ -4,7 +4,8 @@ import type {
   BatchRecord,
   ChannelSummary,
   ProgressEvent,
-  ScheduleInput
+  ScheduleInput,
+  StreamKeyMode
 } from '../shared/types'
 import { AppError, toAppError } from './errors'
 import type { BrowserStore } from './storage'
@@ -14,6 +15,15 @@ const RETRY_DELAYS_MS = [1_000, 3_000, 8_000]
 
 function delay(milliseconds: number): Promise<void> {
   return new Promise((resolve) => window.setTimeout(resolve, milliseconds))
+}
+
+function streamKeyMode(input: ScheduleInput): StreamKeyMode {
+  const legacy = input as ScheduleInput & {
+    sharedStreamKey?: boolean
+    rotateStreamKey?: boolean
+  }
+  return input.streamKeyMode
+    ?? (legacy.sharedStreamKey === false ? 'broadcast' : legacy.rotateStreamKey ? 'batch' : 'existing')
 }
 
 export class SchedulerService {
@@ -38,6 +48,9 @@ export class SchedulerService {
 
   async start(input: ScheduleInput, excludedIds: string[], channel: ChannelSummary): Promise<BatchRecord> {
     if (this.activeBatchId) throw new AppError('BATCH_RUNNING', 'Another batch is already running.')
+    if (streamKeyMode(input) === 'existing' && !input.existingStreamId) {
+      throw new AppError('STREAM_REQUIRED', 'Choose an existing stream key or create a new one.')
+    }
     const excluded = new Set(excludedIds)
     const preview = generateSchedulePreview(input, excluded)
     if (preview.errors.length) throw new AppError('INVALID_SCHEDULE', preview.errors.join(' '))
@@ -116,12 +129,24 @@ export class SchedulerService {
 
     try {
       let shared: { streamId: string; streamKey: string } | undefined
-      if (batch.input.sharedStreamKey) {
+      const mode = streamKeyMode(batch.input)
+      if (mode !== 'broadcast') {
         const existingStreamId = batch.items.find((item) => item.streamId)?.streamId
-        shared = existingStreamId
-          ? { streamId: existingStreamId, streamKey: await this.retry('shared-stream', () => this.youtube.retrieveStreamKey(existingStreamId)) }
-          : await this.retry('shared-stream', () =>
-              this.youtube.getOrCreateSharedStream(batch.channel, batch.input.rotateStreamKey, batch.id))
+        if (existingStreamId) {
+          shared = {
+            streamId: existingStreamId,
+            streamKey: await this.retry('shared-stream', () => this.youtube.retrieveStreamKey(existingStreamId))
+          }
+        } else if (mode === 'existing' && batch.input.existingStreamId) {
+          const streamId = batch.input.existingStreamId
+          shared = {
+            streamId,
+            streamKey: await this.retry('shared-stream', () => this.youtube.retrieveStreamKey(streamId))
+          }
+        } else {
+          shared = await this.retry('shared-stream', () =>
+            this.youtube.getOrCreateSharedStream(batch.channel, mode === 'batch', batch.id))
+        }
         this.rememberStreamKey(batch.id, shared.streamId, shared.streamKey)
       }
 

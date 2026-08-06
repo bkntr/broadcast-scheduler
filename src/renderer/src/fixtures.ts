@@ -4,6 +4,7 @@ import type {
   AuthState,
   BatchItemRecord,
   BatchRecord,
+  LiveStreamSummary,
   Locale,
   ScheduleInput,
   SchedulePreview
@@ -30,6 +31,7 @@ export interface UiFixture {
   activeBatch?: BatchRecord
   globalError?: string
   description?: string
+  liveStreams?: LiveStreamSummary[]
 }
 
 const channel = {
@@ -103,7 +105,8 @@ export function createUiFixture(
       ? 'Bienvenue à la session {session}.\n\nRendez-vous le {date} à {time}.\n\nPréparez vos questions et votre matériel avant le direct.'
       : 'Welcome to session {session}.\n\nJoin us on {date} at {time}.\n\nPlease prepare your questions and equipment before the broadcast.',
     privacy: 'unlisted',
-    sharedStreamKey: true,
+    streamKeyMode: 'existing',
+    existingStreamId: 'fixture-stream',
     autoStart: true,
     autoStop: true
   }
@@ -122,7 +125,8 @@ export function createUiFixture(
     settings,
     auth: connected,
     batches,
-    form
+    form,
+    liveStreams: [{ id: 'fixture-stream', title: 'Atelier vidéo — default' }]
   }
 
   if (name === 'auth') {
