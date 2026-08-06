@@ -1,20 +1,6 @@
-# Python-generated files
-__pycache__/
-*.py[oc]
-build/
-dist/
-wheels/
-*.egg-info
-
-# Virtual environments
-.venv
-
 # Secrets
 client_secrets.json
 client_secret_*.json
-token.pickle
-oauth-credentials.bin
-oauth-client.bin
 *.key
 *.pem
 *.p12
@@ -22,10 +8,9 @@ oauth-client.bin
 *.jks
 *.keystore
 
-# Node / web build
+# Node and web build output
 node_modules/
-out/
-release/
+dist/
 *.log
 *.tsbuildinfo
 

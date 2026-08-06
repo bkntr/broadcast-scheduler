@@ -9,7 +9,7 @@ interface PersistedState {
   channelStreams: Record<string, string>
 }
 
-const DATABASE_NAME = 'youtube-scheduler'
+const DATABASE_NAME = 'broadcast-scheduler'
 const STORE_NAME = 'app-data'
 const STATE_KEY = 'state'
 const THUMBNAIL_PREFIX = 'thumbnail:'

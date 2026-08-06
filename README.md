@@ -183,7 +183,6 @@ Run all checks and create the production bundle with:
 
 ```bash
 npm run build
-uv run python -m unittest discover -s tests -p 'test_*.py'
 ```
 
 The production files are emitted to `dist/`.
@@ -209,7 +208,6 @@ http://localhost:5173/?fixture=review&locale=fr&theme=dark
 Fixture names include `auth`, `schedule`, `review`, `large`, `progress`,
 `success`, `history`, `settings`, `description`, and `error`.
 
-## Legacy Python CLI
+## License
 
-The original Python scripts remain as a legacy reference. They use their own
-Desktop app OAuth flow and are independent from the Netlify web app.
+Copyright (c) 2026 Ben Kantor. Released under the [MIT License](LICENSE).

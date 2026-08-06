@@ -3,14 +3,14 @@
   "productName": "Broadcast Scheduler",
   "version": "0.1.0",
   "description": "Schedule recurring YouTube live broadcasts from a browser.",
-  "author": "bkntr",
-  "license": "UNLICENSED",
+  "author": "Ben Kantor",
+  "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/bkntr/youtube-scheduler.git"
+    "url": "https://github.com/bkntr/broadcast-scheduler.git"
   },
-  "homepage": "https://github.com/bkntr/youtube-scheduler",
-  "bugs": "https://github.com/bkntr/youtube-scheduler/issues",
+  "homepage": "https://github.com/bkntr/broadcast-scheduler",
+  "bugs": "https://github.com/bkntr/broadcast-scheduler/issues",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -19,7 +19,6 @@
     "typecheck": "svelte-check --tsconfig ./tsconfig.web.json && tsc --noEmit -p tsconfig.web.json",
     "test": "vitest run --root .",
     "test:watch": "vitest --root .",
-    "icons": "node scripts/generate-icons.mjs",
     "build": "npm run typecheck && npm test && vite build"
   },
   "dependencies": {
