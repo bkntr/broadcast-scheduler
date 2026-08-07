@@ -13,7 +13,7 @@ interface TokenResponse {
 }
 
 interface TokenClient {
-  requestAccessToken(configuration?: { prompt?: string }): void
+  requestAccessToken(configuration?: { prompt?: '' | 'none' | 'consent' | 'select_account' }): void
 }
 
 interface GoogleIdentityServices {
@@ -90,7 +90,7 @@ export class AuthService {
     return this.accessToken
   }
 
-  async connect(): Promise<AuthState> {
+  async connect(selectAccount = false): Promise<AuthState> {
     const clientId = this.clientId
     if (!clientId) {
       return { status: 'unconfigured', channels: [], message: 'The site owner must configure VITE_GOOGLE_CLIENT_ID before deploying.' }
@@ -108,7 +108,10 @@ export class AuthService {
           ? 'The Google sign-in window was closed.'
           : 'Google sign-in could not be completed.'))
       })
-      client.requestAccessToken()
+      // An empty prompt lets Google reuse an existing session and consent grant
+      // while keeping the access token ephemeral. Account selection remains an
+      // explicit fallback for users with multiple Google accounts.
+      client.requestAccessToken({ prompt: selectAccount ? 'select_account' : '' })
     })
     if (response.error || !response.access_token) {
       throw new AppError('OAUTH_DENIED', response.error_description ?? response.error ?? 'Google did not return an access token.')
@@ -144,7 +147,7 @@ export class AuthService {
     const settings = this.store.getSettings()
     const selectedChannelId = this.channels.some((channel) => channel.id === settings.selectedChannelId)
       ? settings.selectedChannelId
-      : this.channels.length === 1 ? this.channels[0].id : undefined
+      : !settings.selectedChannelId && this.channels.length === 1 ? this.channels[0].id : undefined
     return { status: 'connected', channels: structuredClone(this.channels), selectedChannelId }
   }
 

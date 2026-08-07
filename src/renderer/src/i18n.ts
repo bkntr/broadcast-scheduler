@@ -10,6 +10,8 @@ const messages: Record<string, Record<Locale, string>> = {
   connectBody: { en: 'Google authentication opens in a secure popup. You may need to reconnect after refreshing the page.', fr: 'L’authentification Google s’ouvre dans une fenêtre sécurisée. Une reconnexion peut être nécessaire après actualisation de la page.' },
   connect: { en: 'Connect YouTube', fr: 'Connecter YouTube' },
   reconnect: { en: 'Reconnect YouTube', fr: 'Reconnecter YouTube' },
+  useAnotherAccount: { en: 'Use another Google account', fr: 'Utiliser un autre compte Google' },
+  rememberedChannelUnavailable: { en: 'The previously selected YouTube channel is not available in this Google account. Choose an available channel or use another account.', fr: 'La chaîne YouTube précédemment sélectionnée n’est pas disponible dans ce compte Google. Choisissez une chaîne disponible ou utilisez un autre compte.' },
   accountMenu: { en: 'Open account menu', fr: 'Ouvrir le menu du compte' },
   disconnect: { en: 'Disconnect', fr: 'Déconnecter' },
   switchChannel: { en: 'Channel', fr: 'Chaîne' },

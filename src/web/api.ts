@@ -78,7 +78,7 @@ export interface WebApi {
   }>
   settings: { save(settings: AppSettings): Promise<AppSettings> }
   auth: {
-    connect(): Promise<AuthState>
+    connect(selectAccount?: boolean): Promise<AuthState>
     state(): Promise<AuthState>
     selectChannel(channelId: string): Promise<AuthState>
     disconnect(): Promise<void>
@@ -139,11 +139,11 @@ export function installWebApi(): void {
       }
     },
     auth: {
-      connect: async () => {
+      connect: async (selectAccount = false) => {
         await initialize()
-        const state = await auth.connect()
-        if (state.status === 'connected' && state.channels.length === 1) {
-          const settings = store.getSettings()
+        const settings = store.getSettings()
+        const state = await auth.connect(selectAccount)
+        if (state.status === 'connected' && (selectAccount || !settings.selectedChannelId) && state.channels.length === 1) {
           settings.selectedChannelId = state.channels[0].id
           await store.setSettings(settings)
           state.selectedChannelId = state.channels[0].id

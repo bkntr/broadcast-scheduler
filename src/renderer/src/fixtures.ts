@@ -132,6 +132,9 @@ export function createUiFixture(
   if (name === 'auth') {
     fixture.auth = { status: 'unconfigured', channels: [] }
     fixture.boot.auth = fixture.auth
+  } else if (name === 'reconnect') {
+    fixture.auth = { status: 'disconnected', channels: [], message: 'Connect your Google account to manage its YouTube channel.' }
+    fixture.boot.auth = fixture.auth
   } else if (name === 'review' || name === 'description' || name === 'large') {
     fixture.view = 'review'
     fixture.preview = preview

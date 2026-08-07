@@ -239,12 +239,12 @@
     return input.streamKeyMode ? input.streamKeyMode !== 'broadcast' : legacy.sharedStreamKey !== false
   }
 
-  async function connect(): Promise<void> {
+  async function connect(selectAccount = false): Promise<void> {
     busy = true
     globalError = undefined
     try {
-      auth = await window.desktop.auth.connect()
-      settings.selectedChannelId = auth.selectedChannelId
+      auth = await window.desktop.auth.connect(selectAccount)
+      if (auth.selectedChannelId) settings.selectedChannelId = auth.selectedChannelId
       await loadPlaylists()
     } catch (error) {
       globalError = errorMessage(error)
@@ -633,18 +633,25 @@
       <section class="auth-card card">
         <div class="auth-icon"><UserRoundCheck size={32} /></div>
         <h1 class="page-heading">{t('connectTitle')}</h1>
-        <p class="page-intro">{auth.status === 'unconfigured' ? t('authUnconfigured') : auth.message ?? t('connectBody')}</p>
+        <p class="page-intro">{auth.status === 'unconfigured'
+          ? t('authUnconfigured')
+          : auth.status === 'connected' && settings.selectedChannelId && !auth.selectedChannelId
+            ? t('rememberedChannelUnavailable')
+            : auth.message ?? t('connectBody')}</p>
         <div class="auth-actions">
           {#if auth.status === 'unconfigured'}
             <button class="button primary" onclick={() => oauthHelpOpen = true}><CircleHelp size={17} /> {t('oauthHelp')}</button>
-          {:else}
-            <button class="button primary" disabled={busy} onclick={connect}>
+          {:else if auth.status !== 'connected'}
+            <button class="button primary" disabled={busy} onclick={() => connect()}>
               {#if busy}<LoaderCircle class="animate-spin" size={17} />{/if}
-              {auth.status === 'reauth-required' ? t('reconnect') : t('connect')}
+              {auth.status === 'reauth-required' || settings.selectedChannelId ? t('reconnect') : t('connect')}
             </button>
           {/if}
+          {#if auth.status !== 'unconfigured' && (settings.selectedChannelId || auth.status === 'connected')}
+            <button class="button secondary" disabled={busy} onclick={() => connect(true)}>{t('useAnotherAccount')}</button>
+          {/if}
         </div>
-        {#if auth.status === 'connected' && auth.channels.length > 1}
+        {#if auth.status === 'connected' && auth.channels.length > 0}
           <div class="field" style="margin-top:20px;text-align:left">
             <label for="channel-choice">{t('selectChannel')}</label>
             <select id="channel-choice" class="select" onchange={(event) => selectChannel(event.currentTarget.value)}>
@@ -873,7 +880,7 @@
         </div>
         <div class="actions">
           {#if activeBatch.status === 'failed' || activeBatch.status === 'paused'}
-            {#if activeBatch.lastError?.toLowerCase().includes('authorization')}<button class="button secondary" onclick={connect}>{t('reconnect')}</button>{/if}
+            {#if activeBatch.lastError?.toLowerCase().includes('authorization')}<button class="button secondary" onclick={() => connect()}>{t('reconnect')}</button>{/if}
             <button class="button primary" onclick={() => resumeBatch(activeBatch!)}><RotateCw size={16} /> {t('resume')}</button>
           {:else}
             <button class="button secondary" onclick={() => window.desktop.batches.stop()}>{t('stopAfterCurrent')}</button>

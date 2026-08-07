@@ -205,7 +205,7 @@ UI fixtures do not require Google login, for example:
 http://localhost:5173/?fixture=review&locale=fr&theme=dark
 ```
 
-Fixture names include `auth`, `schedule`, `review`, `large`, `progress`,
+Fixture names include `auth`, `reconnect`, `schedule`, `review`, `large`, `progress`,
 `success`, `history`, `settings`, `description`, and `error`.
 
 ## License
